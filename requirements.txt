@@ -1,0 +1,20 @@
+# Core ML analysis dependencies
+numpy
+pandas
+scikit-learn
+seaborn
+matplotlib
+openpyxl
+requests          # used by the RAG agent's live web search
+
+# Optional RAG agent LLM backends (enable richer natural-language answers).
+# The RAG agent falls back to local mode + live web search if no key is set.
+google-generativeai   # for RAG_PROVIDER=gemini  (set GOOGLE_API_KEY)
+openai                # for RAG_PROVIDER=openai   (set OPENAI_API_KEY)
+
+# Optional: Tavily SDK (the agent uses the REST API directly; this is only if you
+# prefer the SDK, or want the `tvly` CLI). Web search works keyless without it.
+# tavily-python
+
+# XGBoost (optional; the script auto-detects it)
+# xgboost
