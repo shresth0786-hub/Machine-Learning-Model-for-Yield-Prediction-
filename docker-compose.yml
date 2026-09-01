@@ -1,0 +1,24 @@
+# =============================================================================
+# Run the ML yield-prediction analysis in a container.
+#
+# Quick smoke test (fast, no trailing args):
+#   docker compose run --rm mleval 08-Mar --smoke
+#
+# Full run for a date:
+#   docker compose run --rm mleval 08-Mar
+#
+# Results are written to the bind-mounted ./out directory (maps to the
+# container's working dir where the script writes Datewise_Results/ and zips).
+# =============================================================================
+services:
+  mleval:
+    build: .
+    image: ml-yield-prediction:latest
+    # Mount current dir as /app so dates are parsed and outputs persist.
+    volumes:
+      - ./out:/app/out
+    environment:
+      RAG_USE_AGENT: "False"
+      MLFLOW_ENABLED: "0"
+    # Example command: docker compose run --rm mleval 08-Mar --smoke
+    command: ["08-Mar", "--smoke"]

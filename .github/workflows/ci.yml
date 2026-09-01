@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke-test:
+    name: Smoke test the ML pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify inputs present
+        run: |
+          test -f "Bands&VI data_ML.xlsx" && echo "data file present"
+          test -f "Latest Updated Code for IDLE.py" && echo "main script present"
+
+      - name: Run the analysis (smoke mode)
+        # --smoke keeps the run fast (tiny combo set + 2 CV splits) so CI
+        # stays well under GitHub's job timeout.
+        run: |
+          python "Latest Updated Code for IDLE.py" "08-Mar" --smoke
+
+      - name: Upload results as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-results
+          path: |
+            Datewise_Results/
+          if-no-files-found: warn
+          retention-days: 7

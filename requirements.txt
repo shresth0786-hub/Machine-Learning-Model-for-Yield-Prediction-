@@ -6,6 +6,7 @@ seaborn
 matplotlib
 openpyxl
 requests          # used by the RAG agent's live web search
+mlflow            # experiment tracking (local tracking under ./mlruns)
 
 # Optional RAG agent LLM backends (enable richer natural-language answers).
 # The RAG agent falls back to local mode + live web search if no key is set.

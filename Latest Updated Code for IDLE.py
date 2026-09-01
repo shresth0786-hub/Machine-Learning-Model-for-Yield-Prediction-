@@ -82,6 +82,54 @@ CV_SPLITS = 20
 MAX_TRAIN_TEST_DIFF = 0.10
 
 # -----------------------------------------------------------------------------
+# SMOKE TEST MODE
+#   When True, the expensive full combination x CV search is reduced to a tiny
+#   subset so the analysis finishes in seconds. Used by CI and Docker smoke
+#   tests to verify the pipeline end-to-end without waiting many minutes.
+#   Enabled via: python script.py <date> --smoke
+# -----------------------------------------------------------------------------
+
+SMOKE_TEST = "--smoke" in sys.argv
+
+if SMOKE_TEST:
+    CV_SPLITS = 2
+    MAX_COMBINATION_SIZE = 2
+
+# -----------------------------------------------------------------------------
+# MLFLOW TRACKING
+#   When True, each run's params, metrics and (tree) models are logged with
+#   MLflow so runs can be compared over time. Run `mlflow ui` to view.
+#   Disabled automatically in SMOKE_TEST and in CI unless MLFLOW_TRACKING_URI
+#   is explicitly set.
+# -----------------------------------------------------------------------------
+
+MLFLOW_ENABLED = os.environ.get("MLFLOW_ENABLED", "1" if not SMOKE_TEST else "0") == "1"
+
+if MLFLOW_ENABLED:
+    try:
+        import mlflow
+
+        mlflow.set_tracking_uri(
+            os.environ.get("MLFLOW_TRACKING_URI", "mlruns")
+        )
+        mlflow.sklearn.autolog(log_models=False, silent=True)
+
+        _mlflow_run = mlflow.start_run(run_name=os.environ.get(
+            "MLFLOW_RUN_NAME",
+            f"{os.path.basename(DATA_FILE)}-{os.path.splitext(DATA_FILE)[0]}"
+        ))
+        mlflow.log_params({
+            "cv_splits": CV_SPLITS,
+            "test_size": TEST_SIZE,
+            "max_combo_size": MAX_COMBINATION_SIZE,
+            "random_state": RANDOM_STATE,
+            "smoke_test": SMOKE_TEST,
+        })
+    except Exception as _mle:
+        MLFLOW_ENABLED = False
+        print(f"[WARN] MLflow disabled: {_mle}")
+
+# -----------------------------------------------------------------------------
 # AGROSENSE RAG AGENT SETTINGS
 #   RAG_PROVIDER: "auto" | "gemini" | "openai" | "local"
 #     - auto   -> uses Gemini if GOOGLE_API_KEY is set, else OpenAI if
@@ -961,6 +1009,28 @@ if best_model_name is None:
         )
         best_overall_cv = np.nan
 
+# -----------------------------------------------------------------------------
+# MLFLOW — LOG FINAL METRICS
+# -----------------------------------------------------------------------------
+
+if MLFLOW_ENABLED:
+    try:
+        mlflow.log_params({
+            "date": selected_day,
+            "year": str(selected_year),
+            "best_model": best_overall_model,
+            "n_samples": int(len(day_data)),
+            "best_features": ", ".join(best_overall_features or [])
+        })
+        mlflow.log_metrics({
+            "cv_r2": float(best_overall_cv) if best_overall_cv is not None else float("nan"),
+            "train_r2": float(best_overall_train_r2) if best_overall_train_r2 is not None else float("nan"),
+            "test_r2": float(best_overall_test_r2) if best_overall_test_r2 is not None else float("nan"),
+            "train_test_gap": float(best_overall_gap) if best_overall_gap is not None else float("nan"),
+        })
+        mlflow.end_run()
+    except Exception as _mle:
+        print(f"[WARN] Could not log to MLflow: {_mle}")
 
 model_results_df = pd.DataFrame(
     model_results

@@ -16,6 +16,10 @@ Datewise_Results/
 *_Results.zip
 *_rag_report.txt
 
+# MLflow
+mlruns/
+mlartifacts/
+
 # OS
 Thumbs.db
 .DS_Store

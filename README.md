@@ -15,6 +15,10 @@ agent that also searches the live internet for context and answers.
   train–test R² gap (`MAX_TRAIN_TEST_DIFF`).
 - **Rich outputs** — Excel workbooks, PNG charts, predictions/residuals/metrics for
   both training and test sets, and a zipped results archive.
+- **MLflow tracking** — auto-logs each run's params and metrics so dates/runs can be
+  compared over time.
+- **Docker + CI** — reproducible container runtime and automatic GitHub Actions
+  verification on every push.
 - **AgroSense RAG agent** — generates a natural-language report and optional live
   interactive chat about the ML results.
 
@@ -28,6 +32,8 @@ agent that also searches the live internet for context and answers.
 | `requirements.txt` | Python dependencies. |
 | `.env.example` | RAG provider / API-key template (copy to `.env`). |
 | `.gitignore` | Excludes secrets (`.env`) and generated outputs. |
+| `Dockerfile` / `docker-compose.yml` | Containerized reproducible runtime. |
+| `.github/workflows/ci.yml` | GitHub Actions CI (auto-run + verification). |
 | `Latest Code - Linear Regression.py` etc. | Per-model variant scripts. |
 
 ## How it works
@@ -145,3 +151,60 @@ Key settings at the top of `Latest Updated Code for IDLE.py`:
 | `MAX_TRAIN_TEST_DIFF` | `0.10` | Max acceptable train–test R² gap (overfitting guard). |
 | `RAG_USE_AGENT` | `True` | Enable the AgroSense agent. |
 | `RAG_PROVIDER` | `auto` | LLM backend for the agent. |
+
+## MLflow experiment tracking
+
+Each run is auto-logged to MLflow when `mlflow` is installed (script disables it
+gracefully if not). Parameters (date, model, features, combos, splits) and metrics
+(CV / train / test R², train-test gap) for every date are recorded under `./mlruns`
+so you can compare runs over time.
+
+```bash
+# Run a full analysis (records an MLflow run)
+python "Latest Updated Code for IDLE.py" 08-Mar
+
+# View the tracking UI
+mlflow ui
+# -> open http://localhost:5000
+```
+
+To disable MLflow: `MLFLOW_ENABLED=0 python ...`. To point at a remote server:
+`MLFLOW_TRACKING_URI=... python ...`.
+
+> `mlruns/` is gitignored — experiments are local unless you configure a server.
+
+## Docker (reproducible runtime)
+
+Build and run the analysis in a container so you never depend on local package
+versions:
+
+```bash
+docker build -t ml-yield-prediction .
+
+# Full run for a date (results written to ./out)
+docker run --rm -v "$(pwd)/out:/app/out" ml-yield-prediction 08-Mar
+
+# Fast smoke test
+docker run --rm -v "$(pwd)/out:/app/out" ml-yield-prediction 08-Mar --smoke
+
+# Or with Docker Compose (smoke test by default)
+docker compose run --rm mleval 08-Mar --smoke
+```
+
+For interactive RAG chat or MLflow UI, run the script directly with Python instead
+of inside the container.
+
+## CI / CD (GitHub Actions)
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push/PR to
+`main`:
+
+1. Installs dependencies on a fresh runner.
+2. Verifies the data file and main script are present.
+3. Runs the full pipeline in fast **smoke mode** (`08-Mar --smoke`) to confirm it
+   completes without errors — catching regressions such as the runtime failures this
+   repo originally had.
+4. Uploads the generated results as a downloadable **artifact** (kept 7 days).
+
+This means every commit is automatically verified to produce output, which is a good
+sanity check before running the expensive full analysis locally.

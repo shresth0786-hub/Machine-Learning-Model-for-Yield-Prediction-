@@ -1,0 +1,17 @@
+# Stray / local-only files that must NOT go into the Docker image
+.env
+.env.local
+*.key
+.git
+.gitignore
+mlruns/
+mlartifacts/
+Datewise_Results/
+*_Results.zip
+*_rag_report.txt
+__pycache__/
+*.py[cod]
+README.md
+Dockerfile
+docker-compose.yml
+.gitattributes
