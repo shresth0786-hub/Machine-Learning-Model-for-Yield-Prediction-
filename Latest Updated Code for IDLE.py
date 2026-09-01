@@ -99,8 +99,11 @@ if SMOKE_TEST:
 # MLFLOW TRACKING
 #   When True, each run's params, metrics and (tree) models are logged with
 #   MLflow so runs can be compared over time. Run `mlflow ui` to view.
-#   Disabled automatically in SMOKE_TEST and in CI unless MLFLOW_TRACKING_URI
-#   is explicitly set.
+#   Disabled automatically in SMOKE_TEST and in CI unless MLFLOW_ENABLED is set.
+#
+#   NOTE: MLflow 3.x dropped the plain filesystem backend, so we use a SQLite
+#   database backend (sqlite:///mlflow.db) by default. To use a remote server,
+#   set MLFLOW_TRACKING_URI to the server URL.
 # -----------------------------------------------------------------------------
 
 MLFLOW_ENABLED = os.environ.get("MLFLOW_ENABLED", "1" if not SMOKE_TEST else "0") == "1"
@@ -110,9 +113,13 @@ if MLFLOW_ENABLED:
         import mlflow
 
         mlflow.set_tracking_uri(
-            os.environ.get("MLFLOW_TRACKING_URI", "mlruns")
+            os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
         )
-        mlflow.sklearn.autolog(log_models=False, silent=True)
+
+        # NOTE: we deliberately do NOT enable sklearn autolog() here. Autolog
+        # eagerly logs every model fit in the combinatorial search loops
+        # (thousands of fits), which massively slows down or hangs the run.
+        # Instead we explicitly log the final params/metrics at the end.
 
         _mlflow_run = mlflow.start_run(run_name=os.environ.get(
             "MLFLOW_RUN_NAME",

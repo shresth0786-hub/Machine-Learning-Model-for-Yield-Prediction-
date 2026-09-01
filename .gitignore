@@ -19,6 +19,7 @@ Datewise_Results/
 # MLflow
 mlruns/
 mlartifacts/
+mlflow.db
 
 # OS
 Thumbs.db
