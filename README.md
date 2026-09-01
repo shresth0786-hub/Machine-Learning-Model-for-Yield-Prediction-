@@ -33,6 +33,7 @@ agent that also searches the live internet for context and answers.
 | `.env.example` | RAG provider / API-key template (copy to `.env`). |
 | `.gitignore` | Excludes secrets (`.env`) and generated outputs. |
 | `Dockerfile` / `docker-compose.yml` | Containerized reproducible runtime. |
+| `run.bat` / `run.sh` | One-click launchers (Windows / Unix). |
 | `.github/workflows/ci.yml` | GitHub Actions CI (auto-run + verification). |
 | `Latest Code - Linear Regression.py` etc. | Per-model variant scripts. |
 
@@ -136,6 +137,26 @@ You can also pass the date as a command-line argument for non-interactive runs:
 
 ```bash
 python "Latest Updated Code for IDLE.py" 08-Mar
+```
+
+### One-click launchers
+
+For convenience, use the provided launcher scripts (same folder as the `.xlsx`):
+
+**Windows** — double-click `run.bat` (prompts for a date), or from a terminal:
+
+```bat
+run.bat
+run.bat 08-Mar
+run.bat 07-Feb --smoke
+```
+
+**macOS / Linux** (make it executable first: `chmod +x run.sh`):
+
+```bash
+./run.sh
+./run.sh 08-Mar
+./run.sh 07-Feb --smoke
 ```
 
 ## Configuration
